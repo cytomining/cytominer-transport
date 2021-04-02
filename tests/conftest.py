@@ -1,7 +1,21 @@
+import glob
+import os.path
+import typing
+
 import pytest
 
 
-@pytest.fixture(params=["A01-1", "A01-2", "B01-1", "B01-2", "E17-4", "J21-2", "N23-5"])
+def params(name: str) -> typing.List[str]:
+    directories = []
+
+    for path in glob.glob(f"./tests/data/{name}/*"):
+        if os.path.isdir(path):
+            directories += [os.path.basename(path)]
+
+    return directories
+
+
+@pytest.fixture(params=params("cell_painting"))
 def cell_painting(name):
     """
     Return configuration for a cell painting dataset.
@@ -18,7 +32,7 @@ def cell_painting(name):
     }
 
 
-@pytest.fixture(params=["1", "2"])
+@pytest.fixture(params=params("htqc"))
 def htqc(name):
     """
     Return configuration for a high-throughput quality control (HTQC) dataset.
@@ -31,7 +45,7 @@ def htqc(name):
     }
 
 
-@pytest.fixture(params=["1", "2"])
+@pytest.fixture(params=params("qc"))
 def qc(name):
     """
     Return configuration for a quality control (QC) dataset.
