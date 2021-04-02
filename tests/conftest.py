@@ -1,11 +1,12 @@
 import glob
+import os
 import os.path
 import typing
 
 import pytest
 
 
-def params(name: str) -> typing.List[str]:
+def params(name: str) -> typing.List[os.PathLike]:
     directories = []
 
     for path in glob.glob(f"./tests/data/{name}/*"):
