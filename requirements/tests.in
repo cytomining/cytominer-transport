@@ -1,0 +1,4 @@
+blinker
+greenlet
+pytest
+python-dotenv
