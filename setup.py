@@ -7,6 +7,7 @@ setup(
         ]
     },
     install_requires=[
+        "click>=7.1.2",
         "numpy>=1.20.2",
         "pandas>=1.2.3",
         "pyarrow>=3.0.0",
