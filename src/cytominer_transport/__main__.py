@@ -6,7 +6,7 @@ import click
     type=click.Path()
 )
 @click.argument(
-    "output",
+    "destination",
     type=click.Path()
 )
 @click.option(
