@@ -30,7 +30,7 @@ def cell_painting(request):
             "Cytoplasm.csv",
             "Nuclei.csv",
         ],
-        "source": f"tests/data/cell_painting/${request.param}",
+        "source": f"tests/data/cell_painting/{request.param}",
     }
 
 
@@ -44,7 +44,7 @@ def htqc(request):
         "experiment": None,
         "image": "Image.csv",
         "object": "Object.csv",
-        "source": f"tests/data/htqc/${request.param}",
+        "source": f"tests/data/htqc/{request.param}",
     }
 
 
@@ -58,5 +58,5 @@ def qc(request):
         "experiment": None,
         "image": "Image.csv",
         "object": None,
-        "source": f"tests/data/qc/${request.param}",
+        "source": f"tests/data/qc/{request.param}",
     }
