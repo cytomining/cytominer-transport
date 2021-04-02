@@ -17,7 +17,7 @@ def params(name: str) -> typing.List[os.PathLike]:
 
 
 @pytest.fixture(params=params("cell_painting"))
-def cell_painting(name):
+def cell_painting(request):
     """
     Return configuration for a cell painting dataset.
     """
@@ -29,12 +29,12 @@ def cell_painting(name):
             "Cytoplasm.csv",
             "Nuclei.csv",
         ],
-        "source": f"tests/data/cell_painting/${name}",
+        "source": f"tests/data/cell_painting/${request.param}",
     }
 
 
 @pytest.fixture(params=params("htqc"))
-def htqc(name):
+def htqc(request):
     """
     Return configuration for a high-throughput quality control (HTQC) dataset.
     """
@@ -42,12 +42,12 @@ def htqc(name):
         "experiment": None,
         "image": "Image.csv",
         "object": "Object.csv",
-        "source": f"tests/data/htqc/${name}",
+        "source": f"tests/data/htqc/${request.param}",
     }
 
 
 @pytest.fixture(params=params("qc"))
-def qc(name):
+def qc(request):
     """
     Return configuration for a quality control (QC) dataset.
     """
@@ -55,5 +55,5 @@ def qc(name):
         "experiment": None,
         "image": "Image.csv",
         "object": None,
-        "source": f"tests/data/qc/${name}",
+        "source": f"tests/data/qc/${request.param}",
     }
