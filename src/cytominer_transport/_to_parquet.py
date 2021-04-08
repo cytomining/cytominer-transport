@@ -43,10 +43,10 @@ def to_parquet(
 
     if not parsed.scheme:
         if not os.path.exists(source):
-            raise FileNotFoundError(filename=source)
+            raise FileNotFoundError(source)
 
         if not os.path.isdir(source):
-            raise NotADirectoryError(filename=source)
+            raise NotADirectoryError(source)
 
     # Open "Experiment.csv" as a Dask DataFrame:
     if experiment:
@@ -68,7 +68,7 @@ def to_parquet(
 
         image.set_index("ImageNumber")
     else:
-        raise FileNotFoundError(filename=pathname)
+        raise FileNotFoundError(pathname)
 
     # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
     # as Dask DataFrames:
@@ -87,6 +87,6 @@ def to_parquet(
         os.mkdir(destination)
 
     if not os.path.isdir(destination):
-        raise NotADirectoryError(filename=destination)
+        raise NotADirectoryError(destination)
 
     image.to_parquet(destination, compression=compression)
