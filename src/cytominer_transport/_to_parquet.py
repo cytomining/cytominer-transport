@@ -10,9 +10,18 @@ def to_parquet(
     destination: typing.Union[str, bytes, os.PathLike],
     experiment: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
     image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
-    objects: typing.Optional[typing.List[typing.Union[str, bytes, os.PathLike]]] = None,
+    objects: typing.List[typing.Union[str, bytes, os.PathLike]] = [],
+    compression: typing.Optional[str] = "snappy",
+    index: typing.Optional[bool] = True,
     **kwargs,
 ):
+    """
+    destination : string or pathlib.Path
+        Destination directory for data. Prepend with protocol like s3:// or hdfs:// for remote data.
+
+    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
+        Name of the compression to use. Use ``None`` for no compression.
+    """
     if not os.path.exists(source):
         raise FileNotFoundError(filename=source)
 
@@ -32,7 +41,9 @@ def to_parquet(
         pathname = os.path.join(source, "Image.csv")
 
     if os.path.exists(pathname):
-        image = dask.dataframe.read_csv(pathname, index_col="ImageNumber")
+        image = dask.dataframe.read_csv(pathname)
+
+        image.set_index("ImageNumber")
     else:
         raise FileNotFoundError(filename=pathname)
 
@@ -42,7 +53,9 @@ def to_parquet(
         pathname = os.path.join(source, object)
 
         if os.path.exists(pathname):
-            features = dask.dataframe.read_csv(pathname, index_col="ImageNumber")
+            features = dask.dataframe.read_csv(pathname)
+
+            features.set_index("ImageNumber")
 
             image = image.merge(features, left_index=True, right_index=True)
 
@@ -53,4 +66,4 @@ def to_parquet(
     if not os.path.isdir(destination):
         raise NotADirectoryError(filename=destination)
 
-    image.to_parquet(destination, **kwargs)
+    image.to_parquet(destination, compression=compression)
