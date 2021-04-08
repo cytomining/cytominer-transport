@@ -1,6 +1,7 @@
 import os
 import os.path
 import typing
+import urllib.parse
 
 import dask.dataframe
 
@@ -12,18 +13,40 @@ def to_parquet(
     image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
     objects: typing.List[typing.Union[str, bytes, os.PathLike]] = [],
     compression: typing.Optional[str] = "snappy",
-    index: typing.Optional[bool] = True,
     **kwargs,
 ):
     """
-    destination : string or pathlib.Path
-        Destination directory for data. Prepend with protocol like s3:// or hdfs:// for remote data.
+    source :
+        Source directory for data. Prepend with a protocol (e.g. s3:// or
+        hdfs://) for remote data.
 
-    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
-        Name of the compression to use. Use ``None`` for no compression.
+    destination :
+        Destination directory for data. Prepend with a protocol (e.g. s3:// or
+        hdfs://) for remote data.
+
+    experiment :
+        CSV containing the run details needed to reproduce the ``image`` and
+        ``objects`` CSVs.
+
+    image :
+        CSV containing data pertaining to images
+
+    objects :
+        One or more CSVs containing data pertaining to objects or regions of
+        interest (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.).
+
+    compression : {{'brotli', 'gzip', 'snappy', None}}, default 'snappy'
+        Name of the compression algorithm to use. Use ``None`` for no
+        compression.
     """
-    if not os.path.exists(source):
-        raise FileNotFoundError(filename=source)
+    parsed = urllib.parse.urlparse(source)
+
+    if not parsed.scheme:
+        if not os.path.exists(source):
+            raise FileNotFoundError(filename=source)
+
+        if not os.path.isdir(source):
+            raise NotADirectoryError(filename=source)
 
     # Open "Experiment.csv" as a Dask DataFrame:
     if experiment:
