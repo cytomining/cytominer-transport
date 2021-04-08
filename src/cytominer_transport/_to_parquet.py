@@ -7,11 +7,11 @@ import pyarrow.csv
 
 
 def to_parquet(
-    source: typing.Union[str, os.PathLike],
-    destination: typing.Union[str, os.PathLike],
-    experiment: typing.Optional[typing.Union[str, os.PathLike]] = None,
-    image: typing.Optional[typing.Union[str, os.PathLike]] = None,
-    object: typing.Optional[typing.List[typing.Union[str, os.PathLike]]] = None,
+    source: typing.Union[str, bytes, os.PathLike],
+    destination: typing.Union[str, bytes, os.PathLike],
+    experiment: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
+    image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
+    object: typing.Optional[typing.List[typing.Union[str, bytes, os.PathLike]]] = None,
 ) -> os.PathLike:
     if experiment:
         experiment_path = os.path.join(source, experiment)
