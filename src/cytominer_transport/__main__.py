@@ -4,31 +4,50 @@ import click
 @click.command()
 @click.argument(
     "source",
-    help="Source directory for data. Prepend with a protocol (e.g. s3:// or hdfs://) for remote data.",
-    type=click.Path(),
+    type=str,
 )
 @click.argument(
     "destination",
-    help="Destination directory for data. Prepend with a protocol (e.g. s3:// or hdfs://) for remote data.",
-    type=click.Path(),
+    type=str,
 )
 @click.option(
     "--experiment",
-    help="CSV containing the run details needed to reproduce the ``image`` and ``objects`` CSVs.",
+    default="Experiment.csv",
+    help="""
+    CSV containing the run details needed to reproduce the `image` and
+    `objects` CSVs.
+    """,
     nargs=1,
-    type=click.File("r"),
+    type=str,
 )
 @click.option(
     "--image",
-    help="CSV containing data pertaining to images",
+    default="Image.csv",
+    help="""
+    CSV containing data pertaining to images.
+    """,
     nargs=1,
-    type=click.File("r"),
+    type=str,
 )
 @click.option(
     "--object",
-    help="One or more CSVs containing data pertaining to objects or regions of interest (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.).",
+    default=["Cells.csv", "Cytoplasm.csv", "Nuclei.csv"],
+    help="""
+    One or more CSVs containing data pertaining to objects or regions of
+    interest (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.).
+    """,
     multiple=True,
-    type=click.File("r"),
+    type=str,
 )
-def __main__():
+@click.option(
+    "--compression", default="snappy", type=click.Choice(["brotli", "gzip", "snappy"])
+)
+def __main__(source, destination, experiment, image, object, compression):
+    """
+    SOURCE directory for data. Prepend with a protocol
+    (e.g. s3:// or hdfs://) for remote data.
+
+    DESTINATION directory for data. Prepend with a protocol
+    (e.g. s3:// or hdfs://) for remote data.
+    """
     pass
