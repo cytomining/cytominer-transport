@@ -10,9 +10,13 @@ def to_parquet(
     source: typing.Union[str, bytes, os.PathLike],
     destination: typing.Union[str, bytes, os.PathLike],
     experiment: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
-    image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
-    objects: typing.List[typing.Union[str, bytes, os.PathLike]] = [],
-    compression: typing.Optional[str] = "snappy",
+    image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = "Image.csv",
+    objects: typing.List[typing.Union[str, bytes, os.PathLike]] = [
+        "Cells.csv",
+        "Cytoplasm.csv",
+        "Nuclei.csv",
+    ],
+    partition_on: typing.Optional[typing.List[str]] = ["Metadata_Well"],
     **kwargs,
 ):
     """
@@ -25,8 +29,8 @@ def to_parquet(
         hdfs://) for remote data.
 
     experiment :
-        CSV containing the run details needed to reproduce the ``image`` and
-        ``objects`` CSVs.
+        CSV containing the run details needed to reproduce the image and
+        objects CSVs.
 
     image :
         CSV containing data pertaining to images
@@ -35,9 +39,13 @@ def to_parquet(
         One or more CSVs containing data pertaining to objects or regions of
         interest (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.).
 
-    compression : {{'brotli', 'gzip', 'snappy', None}}, default 'snappy'
-        Name of the compression algorithm to use. Use ``None`` for no
-        compression.
+    partition_on : list, optional
+        Construct directory-based partitioning by splitting on these fields'
+        values. Each partition will result in one or more datafiles, there
+        will be no global groupby.
+
+    **kwargs :
+        Extra options to be passed on to the specific backend.
     """
     parsed = urllib.parse.urlparse(source)
 
@@ -77,7 +85,14 @@ def to_parquet(
 
             features.set_index("ImageNumber")
 
-            image = image.merge(features, left_index=True, right_index=True)
+            suffix, _ = os.path.splitext(object)
+
+            image = image.merge(
+                features,
+                left_index=True,
+                right_index=True,
+                suffixes=(f"_{suffix}_Image", f"_{suffix}_{suffix}"),
+            )
 
     # Create a destination directory if one doesn’t exist:
     if not os.path.exists(destination):
@@ -86,4 +101,8 @@ def to_parquet(
     if not os.path.isdir(destination):
         raise NotADirectoryError(destination)
 
-    image.to_parquet(destination, compression=compression)
+    image.to_parquet(destination, partition_on=partition_on, **kwargs)
+
+
+if __name__ == "__main__":
+    to_parquet("./tests/data/htqc/1", "example")
