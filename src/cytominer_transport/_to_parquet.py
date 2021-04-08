@@ -102,7 +102,3 @@ def to_parquet(
         raise NotADirectoryError(destination)
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)
-
-
-if __name__ == "__main__":
-    to_parquet("./tests/data/htqc/1", "example")
