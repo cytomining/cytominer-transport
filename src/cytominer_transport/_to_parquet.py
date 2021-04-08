@@ -52,5 +52,12 @@ def to_parquet(
                 object_features = object_features.set_index("ImageNumber")
 
                 image_features = dask.dataframe.merge(
-                    image_features, object_features, left_index=True, right_index=True
+                    image_features,
+                    object_features,
+                    left_index=True,
+                    right_index=True,
                 )
+
+    if image_features is not None:
+        if os.path.isdir(destination):
+            image_features.to_parquet(destination)

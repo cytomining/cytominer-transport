@@ -22,7 +22,6 @@ def cell_painting(request):
     Return configuration for a cell painting dataset.
     """
     yield {
-        "destination": ".",
         "experiment": None,
         "image": "Image.csv",
         "object": [
@@ -40,7 +39,6 @@ def htqc(request):
     Return configuration for a high-throughput quality control (HTQC) dataset.
     """
     yield {
-        "destination": ".",
         "experiment": None,
         "image": "Image.csv",
         "object": "Object.csv",
@@ -54,7 +52,6 @@ def qc(request):
     Return configuration for a quality control (QC) dataset.
     """
     yield {
-        "destination": ".",
         "experiment": None,
         "image": "Image.csv",
         "object": None,
