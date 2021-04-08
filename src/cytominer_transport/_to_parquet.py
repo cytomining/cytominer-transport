@@ -63,12 +63,9 @@ def to_parquet(
     else:
         pathname = os.path.join(source, "Image.csv")
 
-    if os.path.exists(pathname):
-        image = dask.dataframe.read_csv(pathname)
+    image = dask.dataframe.read_csv(pathname)
 
-        image.set_index("ImageNumber")
-    else:
-        raise FileNotFoundError(pathname)
+    image.set_index("ImageNumber")
 
     # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
     # as Dask DataFrames:
