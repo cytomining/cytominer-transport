@@ -3,7 +3,6 @@ import os.path
 import typing
 
 import dask.dataframe
-import pyarrow.csv
 
 
 def to_parquet(
@@ -11,51 +10,47 @@ def to_parquet(
     destination: typing.Union[str, bytes, os.PathLike],
     experiment: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
     image: typing.Optional[typing.Union[str, bytes, os.PathLike]] = None,
-    object: typing.Optional[typing.List[typing.Union[str, bytes, os.PathLike]]] = None,
-) -> os.PathLike:
+    objects: typing.Optional[typing.List[typing.Union[str, bytes, os.PathLike]]] = None,
+    **kwargs,
+):
+    if not os.path.exists(source):
+        raise FileNotFoundError(filename=source)
+
+    # Open "Experiment.csv" as a Dask DataFrame:
     if experiment:
-        experiment_path = os.path.join(source, experiment)
+        pathname = os.path.join(source, experiment)
     else:
-        experiment_path = os.path.join(source, "Experiment.csv")
+        pathname = os.path.join(source, "Experiment.csv")
 
-        if not os.path.exists(experiment_path):
-            experiment_path = None
+    if os.path.exists(pathname):
+        experiment = dask.dataframe.read_csv(pathname)
 
-    if experiment_path:
-        experiment_features = dask.dataframe.read_csv(experiment_path)
-
+    # Open "Image.csv" as a Dask DataFrame:
     if image:
-        image_path = os.path.join(source, image)
+        pathname = os.path.join(source, image)
     else:
-        image_path = os.path.join(source, "Image.csv")
+        pathname = os.path.join(source, "Image.csv")
 
-        if not os.path.exists(image_path):
-            raise ValueError
+    if os.path.exists(pathname):
+        image = dask.dataframe.read_csv(pathname, index_col="ImageNumber")
+    else:
+        raise FileNotFoundError(filename=pathname)
 
-    if image_path:
-        image_features = dask.dataframe.read_csv(image_path, index_col="ImageNumber")
+    # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
+    # as Dask DataFrames:
+    for object in objects:
+        pathname = os.path.join(source, object)
 
-    if object:
-        for name in object:
-            object_path = os.path.join(source, name)
+        if os.path.exists(pathname):
+            features = dask.dataframe.read_csv(pathname, index_col="ImageNumber")
 
-            object_features = None
+            image = image.merge(features, left_index=True, right_index=True)
 
-            try:
-                object_features = dask.dataframe.read_csv(
-                    object_path, index_col="ImageNumber"
-                )
-            except Exception as error:
-                pass
+    # Create a destination directory if one doesn’t exist:
+    if not os.path.exists(destination):
+        os.mkdir(destination)
 
-            if object_features is not None:
-                image_features = dask.dataframe.merge(
-                    image_features,
-                    object_features,
-                    left_index=True,
-                    right_index=True,
-                )
+    if not os.path.isdir(destination):
+        raise NotADirectoryError(filename=destination)
 
-    if image_features is not None:
-        if os.path.isdir(destination):
-            image_features.to_parquet(destination)
+    image.to_parquet(destination, **kwargs)
