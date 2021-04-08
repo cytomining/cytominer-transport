@@ -33,9 +33,7 @@ def to_parquet(
             raise ValueError
 
     if image_path:
-        image_features = dask.dataframe.read_csv(image_path)
-
-        image_features = image_features.set_index("ImageNumber")
+        image_features = dask.dataframe.read_csv(image_path, index_col="ImageNumber")
 
     if object:
         for name in object:
@@ -44,13 +42,13 @@ def to_parquet(
             object_features = None
 
             try:
-                object_features = dask.dataframe.read_csv(object_path)
+                object_features = dask.dataframe.read_csv(
+                    object_path, index_col="ImageNumber"
+                )
             except Exception as error:
                 pass
 
             if object_features is not None:
-                object_features = object_features.set_index("ImageNumber")
-
                 image_features = dask.dataframe.merge(
                     image_features,
                     object_features,
