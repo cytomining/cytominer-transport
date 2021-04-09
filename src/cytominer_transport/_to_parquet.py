@@ -47,29 +47,8 @@ def to_parquet(
     **kwargs :
         Extra options to be passed on to the specific backend.
     """
-    parsed = urllib.parse.urlparse(source)
-
-    if not parsed.scheme:
-        if not os.path.exists(source):
-            raise FileNotFoundError(source)
-
-        if not os.path.isdir(source):
-            raise NotADirectoryError(source)
-
-    # Open "Experiment.csv" as a Dask DataFrame:
-    if experiment:
-        pathname = os.path.join(source, experiment)
-    else:
-        pathname = os.path.join(source, "Experiment.csv")
-
-    if os.path.exists(pathname):
-        experiment = dask.dataframe.read_csv(pathname)
-
     # Open "Image.csv" as a Dask DataFrame:
-    if image:
-        pathname = os.path.join(source, image)
-    else:
-        pathname = os.path.join(source, "Image.csv")
+    pathname = os.path.join(source, image)
 
     image = dask.dataframe.read_csv(pathname)
 
@@ -80,25 +59,14 @@ def to_parquet(
     for object in objects:
         pathname = os.path.join(source, object)
 
-        if os.path.exists(pathname):
-            features = dask.dataframe.read_csv(pathname)
+        prefix, _ = os.path.splitext(object)
 
-            features.set_index("ImageNumber")
+        object = dask.dataframe.read_csv(pathname)
 
-            suffix, _ = os.path.splitext(object)
+        object.set_index("ImageNumber")
 
-            image = image.merge(
-                features,
-                left_index=True,
-                right_index=True,
-                suffixes=(f"_{suffix}_Image", f"_{suffix}_{suffix}"),
-            )
+        object = object.map_partitions(pandas.DataFrame.add_prefix, f"{prefix}_")
 
-    # Create a destination directory if one doesn’t exist:
-    if not os.path.exists(destination):
-        os.mkdir(destination)
-
-    if not os.path.isdir(destination):
-        raise NotADirectoryError(destination)
+        image = image.merge(object, left_index=True, right_index=True)
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)

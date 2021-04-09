@@ -23,11 +23,6 @@ def cell_painting(request):
     """
     yield {
         "experiment": None,
-        "objects": [
-            "Cells.csv",
-            "Cytoplasm.csv",
-            "Nuclei.csv",
-        ],
         "source": f"tests/data/cell_painting/{request.param}",
     }
 
@@ -39,7 +34,7 @@ def htqc(request):
     """
     yield {
         "experiment": None,
-        "objects": "Object.csv",
+        "objects": ["Object.csv"],
         "source": f"tests/data/htqc/{request.param}",
     }
 
