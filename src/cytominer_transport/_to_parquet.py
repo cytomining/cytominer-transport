@@ -4,6 +4,7 @@ import typing
 import urllib.parse
 
 import dask.dataframe
+import pandas
 
 
 def to_parquet(
