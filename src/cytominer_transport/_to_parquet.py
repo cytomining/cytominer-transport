@@ -64,10 +64,8 @@ def to_parquet(
 
         object = dask.dataframe.read_csv(pathname)
 
-        object.set_index("ImageNumber")
-
         object = object.map_partitions(pandas.DataFrame.add_prefix, f"{prefix}_")
 
-        image = image.merge(object, left_index=True, right_index=True)
+        image = image.merge(object, left_index=True, right_on=prefix+"_ImageNumber", how='outer')
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)
