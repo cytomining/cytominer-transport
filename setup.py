@@ -4,6 +4,9 @@ setup(
     extras_require={
         "dotenv": [
             "python-dotenv>=0.16.0",
+        ],
+        "parquet": [
+            "fastparquet>=0.5.0",
         ]
     },
     install_requires=[
