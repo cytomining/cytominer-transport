@@ -66,6 +66,13 @@ def to_parquet(
 
         object = object.map_partitions(pandas.DataFrame.add_prefix, f"{prefix}_")
 
-        image = image.merge(object, left_index=True, right_on=prefix+"_ImageNumber", how='outer')
+        object.set_index(f"{prefix}_ImageNumber")
+
+        image = image.merge(
+            object,
+            how="outer",
+            left_index=True,
+            right_index=True,
+        )
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)
