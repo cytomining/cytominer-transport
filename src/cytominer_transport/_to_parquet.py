@@ -51,9 +51,11 @@ def to_parquet(
     # Open "Image.csv" as a Dask DataFrame:
     pathname = os.path.join(source, image)
 
-    image = dask.dataframe.read_csv(pathname)
+    image = pandas.read_csv(pathname)
 
-    image.set_index("ImageNumber")
+    image.set_index("ImageNumber", inplace=True)
+
+    features = pandas.DataFrame()
 
     # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
     # as Dask DataFrames:
@@ -62,19 +64,29 @@ def to_parquet(
 
         prefix, _ = os.path.splitext(object)
 
-        object = dask.dataframe.read_csv(pathname)
+        object = pandas.read_csv(pathname)
 
-        object = object.map_partitions(pandas.DataFrame.add_prefix, f"{prefix}_")
+        object = object.add_prefix(f"{prefix}_")
 
-        object.set_index(f"{prefix}_ImageNumber")
+        object.rename(columns={f"{prefix}_ImageNumber": "ImageNumber"}, inplace=True)
+        object.rename(columns={f"{prefix}_ObjectNumber": "ObjectNumber"}, inplace=True)
 
-        image = image.merge(
-            object,
-            how="outer",
-            left_index=True,
-            right_index=True,
-        )
+        object.set_index(["ImageNumber", "ObjectNumber"], drop=False, inplace=True)
+
+        object[f"{prefix}_ImageNumber"] = object["ImageNumber"]
+        object[f"{prefix}_ObjectNumber"] = object["ObjectNumber"]
+
+        object.drop(["ImageNumber"], axis=1, inplace=True)
+        object.drop(["ObjectNumber"], axis=1, inplace=True)
+
+        features = pandas.concat([features, object], axis=1)
+
+    image = image.merge(features, how="outer", left_index=True, right_index=True)
+
+    image.reset_index(drop=False, inplace=True)
+
+    npartitions = image[partition_on].unique().size
+
+    image = dask.dataframe.from_pandas(image, npartitions=npartitions)
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)
-
-    return image
