@@ -85,7 +85,7 @@ def to_parquet(
 
     image.reset_index(drop=False, inplace=True)
 
-    npartitions = image[partition_on].unique().size
+    npartitions = image[partition_on[0]].unique().size
 
     image = dask.dataframe.from_pandas(image, npartitions=npartitions)
 
