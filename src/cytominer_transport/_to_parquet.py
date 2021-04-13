@@ -76,3 +76,5 @@ def to_parquet(
         )
 
     image.to_parquet(destination, partition_on=partition_on, **kwargs)
+
+    return image
