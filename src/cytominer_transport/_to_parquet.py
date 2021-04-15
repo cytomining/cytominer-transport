@@ -48,45 +48,58 @@ def to_parquet(
     **kwargs :
         Extra options to be passed on to the specific backend.
     """
-    # Open "Image.csv" as a Dask DataFrame:
-    pathname = os.path.join(source, image)
+    source = os.path.expanduser(source)
 
-    image = pandas.read_csv(pathname)
+    directories = [file.path for file in os.scandir(source) if file.is_dir()]
 
-    image.set_index("ImageNumber", inplace=True)
+    for directory in directories:
+        # Open "Image.csv" as a Dask DataFrame:
+        image_pathname = os.path.join(directory, image)
 
-    features = pandas.DataFrame()
+        image_records = pandas.read_csv(image_pathname)
 
-    # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
-    # as Dask DataFrames:
-    for object in objects:
-        pathname = os.path.join(source, object)
+        image_records.set_index("ImageNumber", inplace=True)
 
-        prefix, _ = os.path.splitext(object)
+        features = pandas.DataFrame()
 
-        object = pandas.read_csv(pathname)
+        # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
+        # as Dask DataFrames:
+        for object in objects:
+            object_pathname = os.path.join(directory, object)
 
-        object = object.add_prefix(f"{prefix}_")
+            prefix, _ = os.path.splitext(object)
 
-        object.rename(columns={f"{prefix}_ImageNumber": "ImageNumber"}, inplace=True)
-        object.rename(columns={f"{prefix}_ObjectNumber": "ObjectNumber"}, inplace=True)
+            object_records = pandas.read_csv(object_pathname)
 
-        object.set_index(["ImageNumber", "ObjectNumber"], drop=False, inplace=True)
+            object_records = object_records.add_prefix(f"{prefix}_")
 
-        object[f"{prefix}_ImageNumber"] = object["ImageNumber"]
-        object[f"{prefix}_ObjectNumber"] = object["ObjectNumber"]
+            object_records.rename(
+                columns={f"{prefix}_ImageNumber": "ImageNumber"}, inplace=True
+            )
+            object_records.rename(
+                columns={f"{prefix}_ObjectNumber": "ObjectNumber"}, inplace=True
+            )
 
-        object.drop(["ImageNumber"], axis=1, inplace=True)
-        object.drop(["ObjectNumber"], axis=1, inplace=True)
+            object_records.set_index(
+                ["ImageNumber", "ObjectNumber"], drop=False, inplace=True
+            )
 
-        features = pandas.concat([features, object], axis=1)
+            object_records[f"{prefix}_ImageNumber"] = object_records["ImageNumber"]
+            object_records[f"{prefix}_ObjectNumber"] = object_records["ObjectNumber"]
 
-    image = image.merge(features, how="outer", left_index=True, right_index=True)
+            object_records.drop(["ImageNumber"], axis=1, inplace=True)
+            object_records.drop(["ObjectNumber"], axis=1, inplace=True)
 
-    image.reset_index(drop=False, inplace=True)
+            features = pandas.concat([features, object_records], axis=1)
 
-    npartitions = image[partition_on[0]].unique().size
+    features = image_records.merge(
+        features, how="outer", left_index=True, right_index=True
+    )
 
-    image = dask.dataframe.from_pandas(image, npartitions=npartitions)
+    features.reset_index(drop=False, inplace=True)
 
-    image.to_parquet(destination, partition_on=partition_on, **kwargs)
+    npartitions = features[partition_on[0]].unique().size
+
+    features = dask.dataframe.from_pandas(features, npartitions=npartitions)
+
+    features.to_parquet(destination, partition_on=partition_on, **kwargs)
