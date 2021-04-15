@@ -55,9 +55,11 @@ def to_parquet(
 
     records = []
 
+    concatenated_records = []
+
     concatenated_image_records = pandas.DataFrame()
 
-    for directory in tqdm.tqdm(directories):
+    for directory in tqdm.tqdm(directories[:3]):
         # Open "Image.csv" as a Dask DataFrame:
         image_pathname = os.path.join(directory, image)
 
@@ -99,21 +101,18 @@ def to_parquet(
                 [concatenated_object_records, object_records], axis=1
             )
 
-        records += [
-            image_records.merge(
-                concatenated_object_records,
-                how="outer",
-                left_index=True,
-                right_index=True,
-            )
-        ]
+        records = image_records.merge(
+            concatenated_object_records, how="outer", left_index=True, right_index=True
+        )
 
-    records = pandas.concat(records)
+        records.reset_index(drop=False, inplace=True)
 
-    records.reset_index(drop=False, inplace=True)
+        npartitions = records[partition_on[0]].unique().size
 
-    npartitions = records[partition_on[0]].unique().size
+        records = dask.dataframe.from_pandas(records, npartitions=npartitions)
 
-    records = dask.dataframe.from_pandas(records, npartitions=npartitions)
+        concatenated_records += [records]
 
-    records.to_parquet(destination, partition_on=partition_on, **kwargs)
+    concatenated_records = dask.dataframe.concat(concatenated_records)
+
+    concatenated_records.to_parquet(destination, partition_on=partition_on, **kwargs)
