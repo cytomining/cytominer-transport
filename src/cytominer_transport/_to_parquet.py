@@ -1,11 +1,10 @@
 import os
 import os.path
 import typing
-import urllib.parse
 
+import dask.delayed
 import dask.dataframe
-import pandas
-import tqdm
+from ._generator import generator
 
 
 def to_parquet(
@@ -51,67 +50,13 @@ def to_parquet(
     """
     source = os.path.expanduser(source)
 
-    directories = [file.path for file in os.scandir(source) if file.is_dir()]
+    directories = []
 
-    records = []
+    for file in os.scandir(source):
+        if file.is_dir():
+            directories += [file.path]
 
-    concatenated_records = []
-
-    concatenated_image_records = pandas.DataFrame()
-
-    for directory in tqdm.tqdm(directories):
-        # Open "Image.csv" as a Dask DataFrame:
-        image_pathname = os.path.join(directory, image)
-
-        image_records = pandas.read_csv(image_pathname)
-
-        image_records.set_index("ImageNumber", inplace=True)
-
-        concatenated_object_records = pandas.DataFrame()
-
-        # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
-        # as Dask DataFrames:
-        for object in objects:
-            object_pathname = os.path.join(directory, object)
-
-            prefix, _ = os.path.splitext(object)
-
-            object_records = pandas.read_csv(object_pathname)
-
-            object_records = object_records.add_prefix(f"{prefix}_")
-
-            object_records.rename(
-                columns={f"{prefix}_ImageNumber": "ImageNumber"}, inplace=True
-            )
-            object_records.rename(
-                columns={f"{prefix}_ObjectNumber": "ObjectNumber"}, inplace=True
-            )
-
-            object_records.set_index(
-                ["ImageNumber", "ObjectNumber"], drop=False, inplace=True
-            )
-
-            object_records[f"{prefix}_ImageNumber"] = object_records["ImageNumber"]
-            object_records[f"{prefix}_ObjectNumber"] = object_records["ObjectNumber"]
-
-            object_records.drop(["ImageNumber"], axis=1, inplace=True)
-            object_records.drop(["ObjectNumber"], axis=1, inplace=True)
-
-            concatenated_object_records = pandas.concat(
-                [concatenated_object_records, object_records], axis=1
-            )
-
-        records = image_records.merge(
-            concatenated_object_records, how="outer", left_index=True, right_index=True
-        )
-
-        records.reset_index(drop=False, inplace=True)
-
-        npartitions = records[partition_on[0]].unique().size
-
-        records = dask.dataframe.from_pandas(records, npartitions=npartitions)
-
-        concatenated_records += [records]
+    concatenated_records = list(generator(directories, image, objects, partition_on))
 
     concatenated_records = dask.dataframe.concat(concatenated_records)
 
