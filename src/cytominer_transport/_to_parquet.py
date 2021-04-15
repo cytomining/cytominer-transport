@@ -5,6 +5,7 @@ import urllib.parse
 
 import dask.dataframe
 import pandas
+import tqdm
 
 
 def to_parquet(
@@ -52,7 +53,11 @@ def to_parquet(
 
     directories = [file.path for file in os.scandir(source) if file.is_dir()]
 
-    for directory in directories:
+    records = []
+
+    concatenated_image_records = pandas.DataFrame()
+
+    for directory in tqdm.tqdm(directories):
         # Open "Image.csv" as a Dask DataFrame:
         image_pathname = os.path.join(directory, image)
 
@@ -60,7 +65,7 @@ def to_parquet(
 
         image_records.set_index("ImageNumber", inplace=True)
 
-        features = pandas.DataFrame()
+        concatenated_object_records = pandas.DataFrame()
 
         # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
         # as Dask DataFrames:
@@ -90,16 +95,25 @@ def to_parquet(
             object_records.drop(["ImageNumber"], axis=1, inplace=True)
             object_records.drop(["ObjectNumber"], axis=1, inplace=True)
 
-            features = pandas.concat([features, object_records], axis=1)
+            concatenated_object_records = pandas.concat(
+                [concatenated_object_records, object_records], axis=1
+            )
 
-    features = image_records.merge(
-        features, how="outer", left_index=True, right_index=True
-    )
+        records += [
+            image_records.merge(
+                concatenated_object_records,
+                how="outer",
+                left_index=True,
+                right_index=True,
+            )
+        ]
 
-    features.reset_index(drop=False, inplace=True)
+    records = pandas.concat(records)
 
-    npartitions = features[partition_on[0]].unique().size
+    records.reset_index(drop=False, inplace=True)
 
-    features = dask.dataframe.from_pandas(features, npartitions=npartitions)
+    npartitions = records[partition_on[0]].unique().size
 
-    features.to_parquet(destination, partition_on=partition_on, **kwargs)
+    records = dask.dataframe.from_pandas(records, npartitions=npartitions)
+
+    records.to_parquet(destination, partition_on=partition_on, **kwargs)
