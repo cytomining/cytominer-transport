@@ -59,7 +59,7 @@ def to_parquet(
 
     concatenated_image_records = pandas.DataFrame()
 
-    for directory in tqdm.tqdm(directories[:3]):
+    for directory in tqdm.tqdm(directories):
         # Open "Image.csv" as a Dask DataFrame:
         image_pathname = os.path.join(directory, image)
 
