@@ -23,14 +23,9 @@ def generator(
 
         image_pathname = os.path.join(directory, image)
 
-        image_records = None
-
         try:
             image_records = pandas.read_csv(image_pathname)
-        except FileNotFoundError:
-            yield
 
-        if image_records:
             image_records.set_index("ImageNumber", inplace=True)
 
             concatenated_object_records = pandas.DataFrame()
@@ -86,3 +81,5 @@ def generator(
             yield records
 
             index += 1
+        except FileNotFoundError as _:
+            yield
