@@ -23,7 +23,15 @@ def generator(
 
         image_pathname = os.path.join(directory, image)
 
-        image_records = pandas.read_csv(image_pathname)
+        image_records = None
+
+        try:
+            image_records = pandas.read_csv(image_pathname)
+        except FileNotFoundError:
+            pass
+
+        if not image_records:
+            yield
 
         image_records.set_index("ImageNumber", inplace=True)
 
