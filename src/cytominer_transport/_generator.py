@@ -28,9 +28,6 @@ def generator(
         try:
             image_records = pandas.read_csv(image_pathname)
         except FileNotFoundError:
-            pass
-
-        if not image_records:
             yield
 
         image_records.set_index("ImageNumber", inplace=True)
