@@ -30,54 +30,59 @@ def generator(
         except FileNotFoundError:
             yield
 
-        image_records.set_index("ImageNumber", inplace=True)
+        if image_records:
+            image_records.set_index("ImageNumber", inplace=True)
 
-        concatenated_object_records = pandas.DataFrame()
+            concatenated_object_records = pandas.DataFrame()
 
-        # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
-        # as Pandas DataFrames:
-        for object in objects:
-            object_pathname = os.path.join(directory, object)
+            # Open object CSVs (e.g. Cells.csv, Cytoplasm.csv, Nuclei.csv, etc.)
+            # as Pandas DataFrames:
+            for object in objects:
+                object_pathname = os.path.join(directory, object)
 
-            prefix, _ = os.path.splitext(object)
+                prefix, _ = os.path.splitext(object)
 
-            object_records = pandas.read_csv(object_pathname)
+                object_records = pandas.read_csv(object_pathname)
 
-            object_records = object_records.add_prefix(f"{prefix}_")
+                object_records = object_records.add_prefix(f"{prefix}_")
 
-            columns = {
-                f"{prefix}_ImageNumber": "ImageNumber",
-                f"{prefix}_ObjectNumber": "ObjectNumber",
-            }
+                columns = {
+                    f"{prefix}_ImageNumber": "ImageNumber",
+                    f"{prefix}_ObjectNumber": "ObjectNumber",
+                }
 
-            object_records.rename(columns=columns, inplace=True)
+                object_records.rename(columns=columns, inplace=True)
 
-            object_records.set_index(
-                ["ImageNumber", "ObjectNumber"], drop=False, inplace=True
+                object_records.set_index(
+                    ["ImageNumber", "ObjectNumber"], drop=False, inplace=True
+                )
+
+                object_records[f"{prefix}_ImageNumber"] = object_records["ImageNumber"]
+                object_records[f"{prefix}_ObjectNumber"] = object_records[
+                    "ObjectNumber"
+                ]
+
+                object_records.drop(
+                    ["ImageNumber", "ObjectNumber"], axis=1, inplace=True
+                )
+
+                concatenated_object_records = pandas.concat(
+                    [concatenated_object_records, object_records], axis=1
+                )
+
+            records = image_records.merge(
+                concatenated_object_records,
+                how="outer",
+                left_index=True,
+                right_index=True,
             )
 
-            object_records[f"{prefix}_ImageNumber"] = object_records["ImageNumber"]
-            object_records[f"{prefix}_ObjectNumber"] = object_records["ObjectNumber"]
+            records.reset_index(drop=False, inplace=True)
 
-            object_records.drop(["ImageNumber", "ObjectNumber"], axis=1, inplace=True)
+            npartitions = records[partition_on[0]].unique().size
 
-            concatenated_object_records = pandas.concat(
-                [concatenated_object_records, object_records], axis=1
-            )
+            records = dask.dataframe.from_pandas(records, npartitions=npartitions)
 
-        records = image_records.merge(
-            concatenated_object_records,
-            how="outer",
-            left_index=True,
-            right_index=True,
-        )
+            yield records
 
-        records.reset_index(drop=False, inplace=True)
-
-        npartitions = records[partition_on[0]].unique().size
-
-        records = dask.dataframe.from_pandas(records, npartitions=npartitions)
-
-        yield records
-
-        index += 1
+            index += 1
